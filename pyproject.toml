@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "invocator"
+version = "0.1.0"
+description = "Extract synthesized engineering knowledge from a GitHub repo into a learnings/ folder."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "Gabriel", email = "gabriel@quizard.ai" },
+]
+dependencies = [
+    "typer>=0.12",
+    "rich>=13",
+    "pydantic>=2",
+    "anthropic>=0.40",
+    "python-dateutil",
+    "tomli-w>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-mock",
+    "freezegun",
+    "black",
+    "isort",
+    "flake8",
+    "pyright",
+]
+
+[project.urls]
+Homepage = "https://github.com/Gab-r-x/invocator"
+Repository = "https://github.com/Gab-r-x/invocator"
+Issues = "https://github.com/Gab-r-x/invocator/issues"
+
+[project.scripts]
+invocator = "invocator.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/invocator"]
