@@ -36,9 +36,9 @@ _LINK_LAST_PAGE_PATTERN = re.compile(r'<[^>]*[?&]page=(\d+)[^>]*>;\s*rel="last"'
 
 def probe_endpoint(*, endpoint: str) -> Result[int]:
     # gh -i emits HTTP headers followed by a blank line, then the JSON body.
-    # We parse the Link header for rel="last" to estimate total item count
-    # (last_page * 100). If there's no Link header, there's a single page —
-    # estimate from the JSON array length of the body.
+    # We probe with per_page=1 so the last-page number IS the item count.
+    # If there's no Link header, there's a single page — estimate from the
+    # JSON array length of the body.
     separator = "&" if "?" in endpoint else "?"
     full_endpoint = f"{endpoint}{separator}per_page=1"
     try:
@@ -71,7 +71,7 @@ def probe_endpoint(*, endpoint: str) -> Result[int]:
         match = _LINK_LAST_PAGE_PATTERN.search(link_header)
         if match:
             last_page = int(match.group(1))
-            return Result[int](success=True, data=last_page * 100)
+            return Result[int](success=True, data=last_page)
 
     body_stripped = body.strip()
     if not body_stripped:

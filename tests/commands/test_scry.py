@@ -160,7 +160,8 @@ def test_probe_endpoint_link_last_page() -> None:
     finally:
         scry_mod.run_gh = saved  # type: ignore[assignment]
     assert result.success is True
-    assert result.data == 700
+    # probe uses per_page=1 → last-page number IS the item count
+    assert result.data == 7
 
 
 def test_probe_endpoint_no_link_falls_back_to_body_length() -> None:
