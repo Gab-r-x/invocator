@@ -1,0 +1,79 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+.installed.cfg
+pip-log.txt
+pip-delete-this-directory.txt
+wheels/
+share/python-wheels/
+MANIFEST
+
+# Virtual envs
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# Test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+.cache
+
+# Type checkers
+.mypy_cache/
+.pyright/
+.pytype/
+.ruff_cache/
+
+# Editors / IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db
+
+# invocator runtime artifacts (never commit caches or real-repo learnings)
+.cache/
+learnings/
+!docs/past/**/learnings/   # explicit allowlist if archived examples ever land
+
+# Local config / secrets — should never be in the repo
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.invocator/
+config.toml
+
+# Tool internals
+.claude/settings.local.json
+.aider*
+.direnv/
+
+# Logs
+*.log
+logs/
+
+# Node (in case docs site/tooling ever lands)
+node_modules/
