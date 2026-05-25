@@ -26,7 +26,7 @@ def test_extract_wisdom_stub() -> None:
     missing_repo = runner.invoke(app, ["extract", "wisdom"])
     assert missing_repo.exit_code == 2
 
-    help_result = runner.invoke(app, ["extract", "wisdom", "--help"])
+    help_result = runner.invoke(app, ["extract", "wisdom", "--help"], env={"COLUMNS": "200"})
     assert help_result.exit_code == 0
     combined = help_result.stdout + (help_result.stderr or "")
     assert "wisdom" in combined
