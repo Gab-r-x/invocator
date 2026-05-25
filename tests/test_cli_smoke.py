@@ -1,8 +1,16 @@
+import re
+
 from typer.testing import CliRunner
 
 from invocator.cli import app
 
 runner = CliRunner()
+
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _strip_ansi(s: str) -> str:
+    return _ANSI_RE.sub("", s)
 
 
 def test_help_lists_three_groups() -> None:
@@ -32,6 +40,6 @@ def test_extract_wisdom_stub() -> None:
 
     help_result = runner.invoke(app, ["extract", "wisdom", "--help"])
     assert help_result.exit_code == 0
-    combined = help_result.stdout + (help_result.stderr or "")
+    combined = _strip_ansi(help_result.stdout + (help_result.stderr or ""))
     assert "wisdom" in combined
     assert "--repo" in combined
