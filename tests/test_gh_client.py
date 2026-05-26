@@ -119,7 +119,9 @@ def test_run_gh_returns_stdout(monkeypatch: pytest.MonkeyPatch) -> None:
     assert run_gh(["api", "repos/a/b"]) == b"{}"
 
 
-def test_run_gh_paginate_prepends_flag(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_run_gh_paginate_inserts_flag_after_api(monkeypatch: pytest.MonkeyPatch) -> None:
+    # --paginate is a flag of `gh api`, not of `gh` itself; it must come
+    # AFTER the `api` subcommand or gh exits with "unknown flag".
     calls: list[list[str]] = []
 
     def fake_run(invocation: list[str], **kw: object) -> subprocess.CompletedProcess:
@@ -128,7 +130,7 @@ def test_run_gh_paginate_prepends_flag(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(gh_client.subprocess, "run", fake_run)
     run_gh(["api", "repos/a/b/pulls"], paginate=True)
-    assert calls == [["gh", "--paginate", "api", "repos/a/b/pulls"]]
+    assert calls == [["gh", "api", "--paginate", "repos/a/b/pulls"]]
 
 
 def test_run_gh_nonzero_raises(monkeypatch: pytest.MonkeyPatch) -> None:

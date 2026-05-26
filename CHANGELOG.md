@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.3] — 2026-05-26
+
+### Fixed
+- `summon` was passing `--paginate` as a top-level `gh` flag instead of
+  as a flag of `gh api`. The invocation `gh --paginate api ...` was
+  rejected by gh, breaking every real-world `extract wisdom` run with
+  `SUMMON_FETCH_FAILED`. Now correctly emits `gh api --paginate ...`.
+- Updated `test_run_gh_paginate_inserts_flag_after_api` to assert the
+  correct arg order.
+
 ## [0.1.2] — 2026-05-25
 
 ### Added

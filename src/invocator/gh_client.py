@@ -87,7 +87,15 @@ def _read_rate_limit_reset_seconds() -> int:
 
 
 def run_gh(args: list[str], *, paginate: bool = False) -> bytes:
-    invocation = ["gh"] + (["--paginate"] if paginate else []) + args
+    # `--paginate` is a flag of `gh api`, not of `gh` itself — it must come
+    # AFTER `api`, not before. Insert it right after the `api` subcommand.
+    invocation: list[str]
+    if paginate and args and args[0] == "api":
+        invocation = ["gh", "api", "--paginate"] + args[1:]
+    elif paginate:
+        invocation = ["gh"] + args + ["--paginate"]
+    else:
+        invocation = ["gh"] + args
     attempts = 0
     while True:
         completed = subprocess.run(
