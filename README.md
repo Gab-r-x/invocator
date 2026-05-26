@@ -18,6 +18,8 @@
 - [`gh` CLI](https://cli.github.com/) installed and authenticated (`gh auth login`) — invocator never calls `api.github.com` directly
 - An **Anthropic API key**
 
+> **Multi-account `gh` users:** `invocator` runs as whichever GitHub identity `gh auth status` reports as *active*. If a repo lives in an org and `REPO_NOT_FOUND` surprises you, switch with `gh auth switch` before re-running.
+
 ## Install
 
 ```bash

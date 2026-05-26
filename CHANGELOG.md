@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.2] — 2026-05-25
+
+### Added
+- `invocator --version` flag — prints the installed version and exits.
+- README note about `gh auth switch` for multi-account users (the repo `invocator` sees depends on `gh`'s active identity).
+
 ## [0.1.1] — 2026-05-25
 
 ### Fixed
