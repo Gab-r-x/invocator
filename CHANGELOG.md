@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.4] — 2026-05-26
+
+### Changed
+- **Classification now sends full bodies to the LLM, not 240-char windows.**
+  Previously each regex hit produced a `ClassifiedItem` with a snippet of
+  ~one sentence around the match. That stripped the surrounding context
+  that lets the LLM judge whether a "should" is a real rule or a passing
+  thought. Now: one item per (category, source_ref), `snippet` = the
+  full body (or `title\n\nbody` for conventional commits / labels / ADRs),
+  `signals` aggregates every cue that fired in that body.
+- Long bodies are truncated to ~4000 chars via `truncate_body` with an
+  explicit `[... truncated by invocator ...]` marker.
+
+### Added
+- `rules/trivial_filter.py`: drops bodies that are pure `lgtm`, `nit`,
+  `+1`, emoji-only, or empty, before classification ever sees them.
+- `classify_conventional`, `classify_labels`, `classify_adr` now accept
+  the PR/issue/commit `body` and use it as the snippet (was title-only).
+- 12 new tests covering trivial filter, full-body snippets, multi-cue
+  aggregation, and over-long truncation.
+
+### Why
+PR descriptions and code-review comments are dense with intent.
+Heuristics are good at routing (which category) but terrible at deciding
+which 240 chars carry the meaning. Pass the whole thing; the LLM does
+the consolidation in its own pass.
+
 ## [0.1.3] — 2026-05-26
 
 ### Fixed

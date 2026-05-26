@@ -1,4 +1,5 @@
 from invocator.models import Category, ClassifiedItem
+from invocator.rules.trivial_filter import truncate_body
 
 DEFAULT_LABEL_MAP: dict[str, Category] = {
     "bug": Category.PREVENCOES,
@@ -25,9 +26,14 @@ def classify_labels(
     labels: list[str],
     source_ref: str,
     title: str,
+    body: str | None = None,
 ) -> list[ClassifiedItem]:
     items: list[ClassifiedItem] = []
-    snippet = title.strip() if title and title.strip() else "<no title>"
+    title_clean = title.strip() if title and title.strip() else "<no title>"
+    if body and body.strip():
+        snippet = f"{title_clean}\n\n{truncate_body(body)}"
+    else:
+        snippet = title_clean
     for raw_label in labels:
         if not raw_label:
             continue

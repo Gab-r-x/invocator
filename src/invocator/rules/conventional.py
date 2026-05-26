@@ -1,6 +1,7 @@
 import re
 
 from invocator.models import Category, ClassifiedItem
+from invocator.rules.trivial_filter import truncate_body
 
 _CONVENTIONAL_RE = re.compile(
     r"^(feat|fix|refactor|perf|docs|test|chore|build|ci|revert)(\([^)]+\))?!?:",
@@ -28,7 +29,12 @@ def parse_conventional(*, title: str) -> tuple[str, str] | None:
     return (type_token, scope_token)
 
 
-def classify_conventional(*, title: str, source_ref: str) -> list[ClassifiedItem]:
+def classify_conventional(
+    *,
+    title: str,
+    source_ref: str,
+    body: str | None = None,
+) -> list[ClassifiedItem]:
     parsed = parse_conventional(title=title)
     if parsed is None:
         return []
@@ -39,11 +45,19 @@ def classify_conventional(*, title: str, source_ref: str) -> list[ClassifiedItem
     signal = f"conventional:{type_token}"
     if scope_token:
         signal = f"{signal}({scope_token})"
+    # Snippet: title + body. The body carries the "why" of the fix/refactor —
+    # title alone (e.g. "fix: race condition") is too thin for the LLM to
+    # turn into a useful prevenção/pattern entry.
+    title_clean = title.strip()
+    if body and body.strip():
+        snippet = f"{title_clean}\n\n{truncate_body(body)}"
+    else:
+        snippet = title_clean
     return [
         ClassifiedItem(
             category=category,
             source_ref=source_ref,
-            snippet=title.strip(),
+            snippet=snippet,
             weight=_CONVENTIONAL_WEIGHT,
             signals=[signal],
         )

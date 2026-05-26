@@ -1,6 +1,7 @@
 import re
 
 from invocator.models import Category, ClassifiedItem
+from invocator.rules.trivial_filter import truncate_body
 
 _SECTION_HEADERS = ("context", "decision", "consequences", "alternatives")
 
@@ -32,14 +33,17 @@ def classify_adr(
         section_count = len(_matched_sections(body=body))
     if not title_match and section_count < 2:
         return []
-    signals: list[str] = ["adr"]
-    snippet = (title or "").strip() or "<no title>"
+    title_clean = (title or "").strip() or "<no title>"
+    if body and body.strip():
+        snippet = f"{title_clean}\n\n{truncate_body(body)}"
+    else:
+        snippet = title_clean
     return [
         ClassifiedItem(
             category=Category.DECISIONS,
             source_ref=source_ref,
             snippet=snippet,
             weight=_ADR_WEIGHT,
-            signals=signals,
+            signals=["adr"],
         )
     ]

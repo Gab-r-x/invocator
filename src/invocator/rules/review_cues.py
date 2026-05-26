@@ -1,6 +1,7 @@
 import re
 
 from invocator.models import Category, ClassifiedItem
+from invocator.rules.trivial_filter import is_trivial, truncate_body
 
 _FENCED_CODE_RE = re.compile(r"```.*?```", re.DOTALL)
 
@@ -14,9 +15,6 @@ _BUG_PATTERN_RE = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 
-_SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
-
-_SNIPPET_MAX_CHARS = 240
 _REVIEW_CUE_WEIGHT = 3
 
 
@@ -24,51 +22,49 @@ def _strip_code_fences(text: str) -> str:
     return _FENCED_CODE_RE.sub(" ", text)
 
 
-def _extract_sentence(*, text: str, match_start: int) -> str:
-    segment_start = 0
-    for sep_match in _SENTENCE_SPLIT_RE.finditer(text):
-        if sep_match.end() <= match_start:
-            segment_start = sep_match.end()
-        else:
-            break
-    rest = text[segment_start:]
-    parts = _SENTENCE_SPLIT_RE.split(rest, maxsplit=1)
-    sentence = parts[0] if parts else rest
-    sentence = sentence.strip()
-    if len(sentence) > _SNIPPET_MAX_CHARS:
-        sentence = sentence[:_SNIPPET_MAX_CHARS].rstrip()
-    return sentence
+def _collect_unique_cues(*, text: str, pattern: re.Pattern[str]) -> list[str]:
+    seen: list[str] = []
+    seen_set: set[str] = set()
+    for match in pattern.finditer(text):
+        token = match.group(1).lower()
+        if token in seen_set:
+            continue
+        seen_set.add(token)
+        seen.append(token)
+    return seen
 
 
 def classify_review_cues(*, body: str | None, source_ref: str) -> list[ClassifiedItem]:
-    if not body:
+    # Drop trivial bodies (lgtm/emoji-only/nits) — these never carry signal.
+    if is_trivial(body):
         return []
-    cleaned = _strip_code_fences(body)
+    assert body is not None  # narrowed by is_trivial
+    truncated = truncate_body(body)
+    # Strip fenced code blocks before matching so "never" inside a code sample
+    # doesn't fire a false positive. But the snippet we send to the LLM is the
+    # ORIGINAL (truncated) body — the LLM needs surrounding context to judge.
+    cleaned = _strip_code_fences(truncated)
+    rule_cues = _collect_unique_cues(text=cleaned, pattern=_IMPERATIVE_RE)
+    bug_cues = _collect_unique_cues(text=cleaned, pattern=_BUG_PATTERN_RE)
     items: list[ClassifiedItem] = []
-    for match in _IMPERATIVE_RE.finditer(cleaned):
-        snippet = _extract_sentence(text=cleaned, match_start=match.start())
-        if not snippet:
-            continue
+    if rule_cues:
         items.append(
             ClassifiedItem(
                 category=Category.RULES,
                 source_ref=source_ref,
-                snippet=snippet,
+                snippet=truncated,
                 weight=_REVIEW_CUE_WEIGHT,
-                signals=[f"cue:{match.group(1).lower()}"],
+                signals=[f"cue:{c}" for c in rule_cues],
             )
         )
-    for match in _BUG_PATTERN_RE.finditer(cleaned):
-        snippet = _extract_sentence(text=cleaned, match_start=match.start())
-        if not snippet:
-            continue
+    if bug_cues:
         items.append(
             ClassifiedItem(
                 category=Category.PREVENCOES,
                 source_ref=source_ref,
-                snippet=snippet,
+                snippet=truncated,
                 weight=_REVIEW_CUE_WEIGHT,
-                signals=[f"bug:{match.group(1).lower()}"],
+                signals=[f"bug:{c}" for c in bug_cues],
             )
         )
     return items

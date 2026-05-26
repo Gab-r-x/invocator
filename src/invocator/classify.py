@@ -87,21 +87,25 @@ def classify_item(*, item: dict, item_type: str) -> list[ClassifiedItem]:
         title = item.get("title") or ""
         body = item.get("body")
         labels = item.get("labels") or []
-        items.extend(classify_conventional(title=title, source_ref=source_ref))
+        items.extend(classify_conventional(title=title, source_ref=source_ref, body=body))
         items.extend(classify_review_cues(body=body, source_ref=source_ref))
-        items.extend(classify_labels(labels=labels, source_ref=source_ref, title=title))
+        items.extend(classify_labels(labels=labels, source_ref=source_ref, title=title, body=body))
         items.extend(classify_adr(title=title, body=body, source_ref=source_ref))
     elif item_type == "issue":
         title = item.get("title") or ""
         body = item.get("body")
         labels = item.get("labels") or []
         items.extend(classify_review_cues(body=body, source_ref=source_ref))
-        items.extend(classify_labels(labels=labels, source_ref=source_ref, title=title))
+        items.extend(classify_labels(labels=labels, source_ref=source_ref, title=title, body=body))
         items.extend(classify_adr(title=title, body=body, source_ref=source_ref))
     elif item_type == "commit":
         message = item.get("message") or ""
-        first_line = message.splitlines()[0] if message else ""
-        items.extend(classify_conventional(title=first_line, source_ref=source_ref))
+        message_lines = message.splitlines() if message else []
+        first_line = message_lines[0] if message_lines else ""
+        commit_body = "\n".join(message_lines[1:]).strip() if len(message_lines) > 1 else None
+        items.extend(
+            classify_conventional(title=first_line, source_ref=source_ref, body=commit_body)
+        )
         items.extend(classify_review_cues(body=message, source_ref=source_ref))
     elif item_type == "review_comment":
         body = item.get("body")
