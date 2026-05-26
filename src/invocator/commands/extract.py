@@ -85,12 +85,22 @@ def _clear_watermark(*, settings: Settings, repo: RepoRef) -> None:
 
 
 def _count_bullets(*, md_path: Path) -> int:
+    # Different category templates use different markers:
+    #   - rules.md uses dash bullets ("- ")
+    #   - prevencoes / patterns / decisions use H3 sections ("### ")
+    #   - glossary uses "**Term**" lines
+    # Count any of them so the terminal display matches the file content.
     if not md_path.exists():
         return 0
     count = 0
     for raw_line in md_path.read_text(encoding="utf-8").splitlines():
         stripped = raw_line.lstrip()
-        if stripped.startswith("- ") or stripped.startswith("* "):
+        if (
+            stripped.startswith("- ")
+            or stripped.startswith("* ")
+            or stripped.startswith("### ")
+            or stripped.startswith("**")
+        ):
             count += 1
     return count
 
@@ -202,8 +212,12 @@ def extract_wisdom(
         console.print(f"  [cyan]{category.value}.md[/cyan]: {bullets} entries  ({md_path})")
     index_path = out / "INDEX.md"
     console.print(f"  [cyan]INDEX.md[/cyan]: {index_path}")
-    console.print(
-        f"[cyan]Categories synthesized:[/cyan] {synth_stats.categories_synthesized}   "
+    breakdown = (
+        f"[cyan]synthesized:[/cyan] {synth_stats.categories_synthesized}   "
         f"[cyan]cached:[/cyan] {synth_stats.categories_cached}   "
-        f"[cyan]Total cost:[/cyan] ${total_dollars:.2f}"
+        f"[cyan]skipped (empty):[/cyan] {synth_stats.categories_skipped_empty}"
     )
+    if synth_stats.categories_dry_run_dumped:
+        breakdown += f"   [cyan]dry-run dumps:[/cyan] {synth_stats.categories_dry_run_dumped}"
+    console.print(breakdown)
+    console.print(f"[cyan]Total cost:[/cyan] ${total_dollars:.2f}")

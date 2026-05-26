@@ -756,3 +756,42 @@ def test_non_dry_run_summary_includes_dollar_cost(
 
     assert result.exit_code == 0, result.output
     assert "$" in result.output
+
+
+# ---------------------------------------------------------------------------
+# 0.1.5 — _count_bullets must count H3 sections and ** bold lines too
+# ---------------------------------------------------------------------------
+
+
+def test_count_bullets_counts_dash_bullets(tmp_path):
+    from invocator.commands.extract import _count_bullets
+
+    p = tmp_path / "x.md"
+    p.write_text("- one\n- two\n- three\n", encoding="utf-8")
+    assert _count_bullets(md_path=p) == 3
+
+
+def test_count_bullets_counts_h3_sections(tmp_path):
+    from invocator.commands.extract import _count_bullets
+
+    p = tmp_path / "x.md"
+    p.write_text(
+        "# Title\n\n## Group\n\n### Entry 1\nbody\n\n### Entry 2\nbody\n",
+        encoding="utf-8",
+    )
+    # 2 ### sections; ## Group is NOT counted (would over-count by grouping)
+    assert _count_bullets(md_path=p) == 2
+
+
+def test_count_bullets_counts_glossary_bold_terms(tmp_path):
+    from invocator.commands.extract import _count_bullets
+
+    p = tmp_path / "x.md"
+    p.write_text("**Term A** — def\n**Term B** — def\n**Term C** — def\n", encoding="utf-8")
+    assert _count_bullets(md_path=p) == 3
+
+
+def test_count_bullets_missing_file_returns_zero(tmp_path):
+    from invocator.commands.extract import _count_bullets
+
+    assert _count_bullets(md_path=tmp_path / "missing.md") == 0

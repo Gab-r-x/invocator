@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.5] — 2026-05-26
+
+### Fixed
+- `decisions` (and any other category with 0 classified items) used to
+  abort synthesis with `Error code: 400 - cache_control cannot be set
+  for empty text blocks`. Now the LLM call is skipped for empty
+  categories and a friendly placeholder is written to the `.md` file.
+- `_count_bullets` in `extract.py` only counted `- ` / `* ` lines, so
+  categories whose template uses `### ` H3 sections (prevencoes,
+  patterns, decisions) and `**Term**` lines (glossary) reported as
+  `0 entries` in the terminal even when the file had real content. Now
+  counts dash bullets, H3 sections, and bold-prefix lines.
+
+### Changed
+- `SynthesisStats` gains two new counters: `categories_dry_run_dumped`
+  (was being conflated with `categories_synthesized`) and
+  `categories_skipped_empty`. The terminal summary now shows the
+  breakdown explicitly.
+
 ## [0.1.4] — 2026-05-26
 
 ### Changed

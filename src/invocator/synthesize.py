@@ -264,6 +264,13 @@ def _load_classified(
     return items
 
 
+def _render_empty_placeholder(*, category: Category) -> str:
+    return (
+        f"# {category.value}\n\n"
+        f"_No `{category.value}` entries were detected in this repository._\n"
+    )
+
+
 def _render_dry_run_markdown(*, category: Category, items: list[ClassifiedItem]) -> str:
     lines: list[str] = [f"# {category.value} (dry-run dump)", ""]
     for item in items:
@@ -377,7 +384,19 @@ def synthesize_all(
             markdown = _render_dry_run_markdown(category=category, items=items)
             _write_atomic(path=md_path, text=markdown)
             per_category_counts[category] = _count_bullets(markdown=markdown)
-            stats.categories_synthesized += 1
+            stats.categories_dry_run_dumped += 1
+            continue
+
+        # Empty corpus → don't call the LLM (Anthropic rejects empty text blocks
+        # with cache_control). Write a friendly placeholder and move on.
+        if not items:
+            placeholder = _render_empty_placeholder(category=category)
+            _write_atomic(path=md_path, text=placeholder)
+            per_category_counts[category] = 0
+            stats.categories_skipped_empty += 1
+            err_console.print(
+                f"[dim]{category.value}:[/dim] [yellow]no classified items, skipped[/yellow]"
+            )
             continue
 
         corpus = build_corpus(classified_items=items)

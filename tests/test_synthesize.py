@@ -570,3 +570,81 @@ def test_synthesis_stats_round_trip() -> None:
     stats = SynthesisStats(started_at_utc=now, finished_at_utc=now)
     rebuilt = SynthesisStats.model_validate(stats.model_dump())
     assert rebuilt == stats
+
+
+# ---------------------------------------------------------------------------
+# 0.1.5 — empty-corpus skip + dry-run counter separation
+# ---------------------------------------------------------------------------
+
+
+def test_synthesize_all_empty_category_writes_placeholder_and_skips_llm(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Seed only RULES; the other four categories have no classified items
+    # and must NOT trigger an LLM call (Anthropic rejects empty text blocks
+    # with cache_control).
+    settings = _settings(tmp_path)
+    repo = _repo()
+    _write_classified(
+        settings=settings,
+        repo=repo,
+        category=Category.RULES,
+        items=[
+            {
+                "category": Category.RULES.value,
+                "source_ref": "PR#1",
+                "snippet": "snippet",
+                "weight": 1,
+                "signals": ["sig"],
+            }
+        ],
+    )
+
+    monkeypatch.setattr(
+        "invocator.config.load_api_key",
+        lambda: Result[str](success=True, data="sk-ant-test-FAKE"),
+    )
+    client = FakeClient(response=FakeResponse(text="# Rules\n\n- entry"))
+    monkeypatch.setattr(synth_mod, "_get_client", lambda *, api_key: client)
+    monkeypatch.setattr(synth_mod, "count_tokens_estimate", lambda *, system, corpus: 100)
+
+    result = synthesize_all(settings=settings, repo=repo, model="claude-sonnet-4-6")
+
+    assert result.success is True
+    data = result.data
+    assert data is not None
+    # only one LLM call (for RULES)
+    assert len(client.messages.calls) == 1
+    # four placeholder writes
+    assert data.categories_skipped_empty == 4
+    assert data.categories_synthesized == 1
+    for cat in (Category.PREVENCOES, Category.PATTERNS, Category.DECISIONS, Category.GLOSSARY):
+        path = settings.out_dir / f"{cat.value}.md"
+        text = path.read_text(encoding="utf-8")
+        assert "No" in text and cat.value in text
+        # placeholder must NOT mention dry-run dump
+        assert "dry-run dump" not in text
+
+
+def test_synthesize_all_dry_run_uses_dry_run_dumped_counter_not_synthesized(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # In dry-run, files are written from classified dumps. Those are NOT
+    # synthesized markdown — the counter must reflect that.
+    settings = _settings(tmp_path)
+    repo = _repo()
+    _seed_all_categories(settings=settings, repo=repo)
+
+    def _boom(*, api_key: str) -> Any:
+        raise AssertionError("client must not be constructed in dry-run")
+
+    monkeypatch.setattr(synth_mod, "_get_client", _boom)
+
+    result = synthesize_all(settings=settings, repo=repo, model="claude-sonnet-4-6", dry_run=True)
+
+    assert result.success is True
+    data = result.data
+    assert data is not None
+    assert data.categories_dry_run_dumped == len(list(Category))
+    assert data.categories_synthesized == 0
+    assert data.categories_skipped_empty == 0

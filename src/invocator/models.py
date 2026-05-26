@@ -136,5 +136,7 @@ class SynthesisStats(BaseModel):
     total_cost_usd_cents: int = 0
     categories_cached: int = 0
     categories_synthesized: int = 0
+    categories_dry_run_dumped: int = 0
+    categories_skipped_empty: int = 0
     started_at_utc: datetime
     finished_at_utc: datetime
